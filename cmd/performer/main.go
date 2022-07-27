@@ -13,7 +13,12 @@ import (
 
 func main() {
 
-	//parse
+	options, err := parseOptions()
+	if err != nil {
+
+		panic(err)
+	}
+
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 
