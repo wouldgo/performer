@@ -9,18 +9,15 @@ import (
 )
 
 var (
-	modeEnv, modeEnvSet = os.LookupEnv("PERFORMER_MODE")
-	mode                = flag.String("mode", "server", "Mode. Can be either \"server\" or \"client\"")
-
-	serverHostEnv, serverHostEnvSet = os.LookupEnv("PERMORER_SERVER_HOST")
-	serverHost                      = flag.String("host", "127.0.0.1", "Host where iperf server can be found")
+	mode       = flag.String("mode", "server", "Mode. Can be either \"server\" or \"client\"")
+	serverHost = flag.String("host", "127.0.0.1", "Host where iperf server can be found")
 )
 
 type Mode string
 
 const (
 	Server Mode = "SERVER"
-	Client      = "CLIENT"
+	Client Mode = "CLIENT"
 )
 
 type Options struct {
@@ -31,6 +28,9 @@ type Options struct {
 func parseOptions() (*Options, error) {
 	flag.Parse()
 
+	modeEnv, modeEnvSet := os.LookupEnv("PERFORMER_MODE")
+	serverHostEnv, serverHostEnvSet := os.LookupEnv("PERMORER_SERVER_HOST")
+
 	if modeEnvSet {
 		mode = &modeEnv
 	}
@@ -38,10 +38,10 @@ func parseOptions() (*Options, error) {
 	var theMode Mode
 	if !strings.EqualFold(*mode, "SERVER") {
 
-		theMode = "CLIENT"
+		theMode = Client
 	} else {
 
-		theMode = "SERVER"
+		theMode = Server
 	}
 
 	var serverIp net.IP

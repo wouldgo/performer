@@ -12,7 +12,6 @@ import (
 )
 
 func main() {
-
 	options, err := parseOptions()
 	if err != nil {
 
@@ -22,14 +21,20 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 
-	go server()
-	go client()
+	if *options.Mode == Server {
+		go server(options)
+	}
+
+	if *options.Mode == Client {
+
+		go client(options)
+	}
 
 	sig := <-stop
 	fmt.Printf("Caught %v", sig)
 }
 
-func client() {
+func client(options *Options) {
 
 	c := iperf.NewClient("localhost")
 	fmt.Printf("Client...")
@@ -57,7 +62,7 @@ func client() {
 	fmt.Println(c.Report().String())
 }
 
-func server() {
+func server(options *Options) {
 	s := iperf.NewServer()
 	fmt.Printf("Starting...")
 	err := s.Start()

@@ -5,6 +5,11 @@ GCC := $(OUT)/$(BUILDARCH)-linux-musl-cross/bin/$(BUILDARCH)-linux-musl-gcc
 LD := $(OUT)/$(BUILDARCH)-linux-musl-cross/bin/$(BUILDARCH)-linux-musl-ld
 VERSION := 0.0.1
 
+test: deps
+	rm -Rf _out/.coverage;
+	go test -coverprofile=_out/.coverage -cover -v ./...;
+	go tool cover -html=_out/.coverage;
+
 performer: deps
 	go run cmd/performer/*.go
 
