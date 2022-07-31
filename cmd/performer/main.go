@@ -25,41 +25,13 @@ func main() {
 		go server(options)
 	}
 
-	if *options.Mode == Client {
+	// if *options.Mode == Client {
 
-		go client(options)
-	}
+	// 	go client(options)
+	// }
 
 	sig := <-stop
 	fmt.Printf("Caught %v", sig)
-}
-
-func client(options *Options) {
-
-	c := iperf.NewClient("localhost")
-	fmt.Printf("Client...")
-	c.SetJSON(true)
-	c.SetIncludeServer(true)
-	c.SetStreams(4)
-	c.SetTimeSec(30)
-	c.SetInterval(1)
-	liveReports := c.SetModeLive()
-
-	go func() {
-		for report := range liveReports {
-			fmt.Println(report.String())
-		}
-	}()
-
-	err := c.Start()
-	if err != nil {
-		fmt.Printf("failed to start client: %v\n", err)
-		os.Exit(-1)
-	}
-
-	<-c.Done
-
-	fmt.Println(c.Report().String())
 }
 
 func server(options *Options) {
