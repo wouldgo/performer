@@ -2,7 +2,6 @@ package client
 
 import (
 	"errors"
-	"net"
 	"testing"
 )
 
@@ -21,9 +20,9 @@ func TestNewWithEmptyStructConfiguration(t *testing.T) {
 }
 
 func TestNewWithStructConfiguration(t *testing.T) {
-	loopback := net.ParseIP("127.0.0.1")
+	host := "iperf.par2.as49434.net"
 	client, err := New(&ClientConf{
-		Host: &loopback,
+		Host: &host,
 	})
 
 	if client == nil {
@@ -65,4 +64,6 @@ func TestNewWithStructConfiguration(t *testing.T) {
 
 		t.Error("New client client Interval has to be set to 1")
 	}
+
+	defer client.Dispose()
 }

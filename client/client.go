@@ -8,7 +8,7 @@ import (
 )
 
 type ClientConf struct {
-	Host *net.IP
+	Host *string
 }
 
 type Client struct {
@@ -18,14 +18,22 @@ type Client struct {
 }
 
 func New(options *ClientConf) (*Client, error) {
-	serverIp := options.Host
-	if serverIp == nil {
+	server := options.Host
+	if server == nil {
 
 		return nil, errors.New("server ip must be set")
 	}
 
+	maybeIp := net.ParseIP(*server)
+	var hostValue string
+	if maybeIp != nil {
+		hostValue = maybeIp.String()
+	} else {
+		hostValue = *server
+	}
+
 	toReturn := &Client{
-		client: iperf.NewClient(options.Host.String()),
+		client: iperf.NewClient(hostValue),
 	}
 
 	toReturn.client.SetJSON(true)
