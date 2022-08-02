@@ -5,23 +5,45 @@ import (
 	"net"
 
 	"github.com/BGrewell/go-iperf"
+	"github.com/google/uuid"
 )
 
 type ClientConf struct {
-	Host *string
+	Host    *string
+	Port    *int
+	Handler func(reports *iperf.StreamIntervalReport)
+	Report  func(report *iperf.TestReport)
 }
 
 type Client struct {
 	client  *iperf.Client
-	Handler func(reports *iperf.StreamIntervalReport)
-	Report  func(report *iperf.TestReport)
+	handler func(reports *iperf.StreamIntervalReport)
+	report  func(report *iperf.TestReport)
 }
+
+func noopHanlder(reports *iperf.StreamIntervalReport) {}
 
 func New(options *ClientConf) (*Client, error) {
 	server := options.Host
 	if server == nil {
 
-		return nil, errors.New("server ip must be set")
+		return nil, errors.New("Host must be set")
+	}
+
+	port := options.Port
+	if port == nil {
+
+		return nil, errors.New("Port must be set")
+	}
+
+	if options.Handler == nil {
+
+		options.Handler = noopHanlder
+	}
+
+	if options.Report == nil {
+
+		return nil, errors.New("Report function must be set")
 	}
 
 	maybeIp := net.ParseIP(*server)
@@ -32,16 +54,34 @@ func New(options *ClientConf) (*Client, error) {
 		hostValue = *server
 	}
 
+	json := true
+	includeServer := true
+	interval := 1
+	proto := iperf.Protocol(iperf.PROTO_TCP)
+	time := 30
+	length := "128KB"
+	streams := 1
+
 	toReturn := &Client{
-		client: iperf.NewClient(hostValue),
+		client: &iperf.Client{
+			Debug: true,
+			Id:    uuid.New().String(),
+			Done:  make(chan bool),
+			Options: &iperf.ClientOptions{
+				Host:          &hostValue,
+				Port:          port,
+				JSON:          &json,
+				Proto:         &proto,
+				TimeSec:       &time,
+				Length:        &length,
+				Streams:       &streams,
+				IncludeServer: &includeServer,
+				Interval:      &interval,
+			},
+		},
+		handler: options.Handler,
+		report:  options.Report,
 	}
-
-	toReturn.client.SetJSON(true)
-
-	toReturn.client.SetIncludeServer(true)
-	toReturn.client.SetStreams(4)
-	toReturn.client.SetTimeSec(30)
-	toReturn.client.SetInterval(1)
 
 	return toReturn, nil
 }
@@ -55,16 +95,16 @@ func (client *Client) Handle() error {
 
 	go func() {
 		for report := range liveReports {
-			client.Handler(report)
+			client.handler(report)
 		}
 	}()
 
 	err := client.client.Start()
 	if err != nil {
-		return errors.New("failed to start client:" + err.Error())
+		return errors.New("Failed to start client:" + err.Error())
 	}
 
 	<-client.client.Done
-	client.Report(client.client.Report())
+	client.report(client.client.Report())
 	return nil
 }

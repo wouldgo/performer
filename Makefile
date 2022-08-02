@@ -7,7 +7,7 @@ VERSION := 0.0.1
 
 test: deps
 	rm -Rf _out/.coverage;
-	go test -coverprofile=_out/.coverage -cover -v ./...;
+	go test -run W -timeout 120s -coverprofile=_out/.coverage -cover -v ./...;
 	go tool cover -html=_out/.coverage;
 
 performer: deps
