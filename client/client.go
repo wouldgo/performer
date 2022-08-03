@@ -9,16 +9,13 @@ import (
 )
 
 type ClientConf struct {
-	Host    *string
-	Port    *int
-	Handler func(reports *iperf.StreamIntervalReport)
-	Report  func(report *iperf.TestReport)
+	Host *string
+	Port *int
 }
 
 type Client struct {
-	client  *iperf.Client
-	handler func(reports *iperf.StreamIntervalReport)
-	report  func(report *iperf.TestReport)
+	client *iperf.Client
+	Report chan *iperf.TestReport
 }
 
 func noopHanlder(reports *iperf.StreamIntervalReport) {}
@@ -34,16 +31,6 @@ func New(options *ClientConf) (*Client, error) {
 	if port == nil {
 
 		return nil, errors.New("Port must be set")
-	}
-
-	if options.Handler == nil {
-
-		options.Handler = noopHanlder
-	}
-
-	if options.Report == nil {
-
-		return nil, errors.New("Report function must be set")
 	}
 
 	maybeIp := net.ParseIP(*server)
@@ -64,9 +51,9 @@ func New(options *ClientConf) (*Client, error) {
 
 	toReturn := &Client{
 		client: &iperf.Client{
-			Debug: true,
-			Id:    uuid.New().String(),
-			Done:  make(chan bool),
+			//Debug: true,
+			Id:   uuid.New().String(),
+			Done: make(chan bool),
 			Options: &iperf.ClientOptions{
 				Host:          &hostValue,
 				Port:          port,
@@ -79,8 +66,7 @@ func New(options *ClientConf) (*Client, error) {
 				Interval:      &interval,
 			},
 		},
-		handler: options.Handler,
-		report:  options.Report,
+		Report: make(chan *iperf.TestReport),
 	}
 
 	return toReturn, nil
@@ -90,14 +76,8 @@ func (client *Client) Dispose() {
 	client.client.Stop()
 }
 
-func (client *Client) Handle() error {
-	liveReports := client.client.SetModeLive()
-
-	go func() {
-		for report := range liveReports {
-			client.handler(report)
-		}
-	}()
+func (client *Client) Test() error {
+	client.client.SetModeJson()
 
 	err := client.client.Start()
 	if err != nil {
@@ -105,6 +85,6 @@ func (client *Client) Handle() error {
 	}
 
 	<-client.client.Done
-	client.report(client.client.Report())
+	client.Report <- client.client.Report()
 	return nil
 }

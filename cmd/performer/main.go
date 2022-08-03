@@ -27,12 +27,6 @@ func main() {
 	client, err := client.New(&client.ClientConf{
 		Host: &host,
 		Port: &port,
-		Handler: func(reports *iperf.StreamIntervalReport) {
-			fmt.Println(reports.String())
-		},
-		Report: func(report *iperf.TestReport) {
-			fmt.Println(report.String())
-		},
 	})
 
 	if err != nil {
@@ -40,9 +34,15 @@ func main() {
 		panic(err)
 	}
 
-	errHandle := client.Handle()
-	if errHandle != nil {
-		panic(errHandle)
+	go func() {
+
+		data := <-client.Report
+		fmt.Printf("%v", data)
+	}()
+
+	errTest := client.Test()
+	if errTest != nil {
+		panic(errTest)
 	}
 
 	defer client.Dispose()
