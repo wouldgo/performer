@@ -4,20 +4,21 @@ BUILDARCH := $(shell uname -m)
 GCC := $(OUT)/$(BUILDARCH)-linux-musl-cross/bin/$(BUILDARCH)-linux-musl-gcc
 LD := $(OUT)/$(BUILDARCH)-linux-musl-cross/bin/$(BUILDARCH)-linux-musl-ld
 VERSION := 0.0.1
+ENTRYPOINT := cmd/performer/main.go cmd/performer/options.go
 
 test: deps
 	rm -Rf _out/.coverage;
-	go test -run W -timeout 120s -coverprofile=_out/.coverage -cover -v ./...;
+	go test -timeout 120s -cover -coverprofile=_out/.coverage ./...;
 	go tool cover -html=_out/.coverage;
 
 performer: deps
-	go run cmd/performer/*.go
+	go run $(ENTRYPOINT)
 
 compile-performer: deps
 	CGO_ENABLED=0 \
 	go build \
 		-ldflags='-extldflags=-static' \
-		-a -o _out/performer cmd/performer/*.go
+		-a -o _out/performer $(ENTRYPOINT)
 
 deps: musl
 	go mod tidy -v

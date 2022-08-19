@@ -3,14 +3,21 @@ package main
 import (
 	"errors"
 	"flag"
-	"net"
+	"math/rand"
 	"os"
+	"performer/client"
+	"strconv"
 	"strings"
 )
 
+func randomInt(min, max int) int {
+	return rand.Intn(max-min) + min
+}
+
 var (
-	mode       = flag.String("mode", "server", "Mode. Can be either \"server\" or \"client\"")
-	serverHost = flag.String("host", "127.0.0.1", "Host where iperf server can be found")
+	mode       = flag.String("mode", "client", "Mode. Can be either \"server\" or \"client\"")
+	serverHost = flag.String("host", "paris.testdebit.info", "Host where iperf server can be found")
+	serverPort = flag.Int("port", randomInt(9200, 9240), "Port where iperf server can be found")
 )
 
 type Mode string
@@ -21,8 +28,8 @@ const (
 )
 
 type Options struct {
+	ClientConf *client.ClientConf
 	Mode       *Mode
-	ServerHost *net.IP
 }
 
 func parseOptions() (*Options, error) {
@@ -30,6 +37,7 @@ func parseOptions() (*Options, error) {
 
 	modeEnv, modeEnvSet := os.LookupEnv("PERFORMER_MODE")
 	serverHostEnv, serverHostEnvSet := os.LookupEnv("PERMORER_SERVER_HOST")
+	serverPortEnv, serverPortEnvSet := os.LookupEnv("PERFORMER_SERVER_PORT")
 
 	if modeEnvSet {
 		mode = &modeEnv
@@ -44,22 +52,35 @@ func parseOptions() (*Options, error) {
 		theMode = Server
 	}
 
-	var serverIp net.IP
 	if serverHostEnvSet {
 
 		serverHost = &serverHostEnv
 	}
 
-	serverIp = net.ParseIP(*serverHost)
-	if serverIp == nil {
-
-		return nil, errors.New("Performer server host is not valid")
+	if serverPortEnvSet {
+		intVar, err := strconv.Atoi(serverPortEnv)
+		if err != nil {
+			return nil, errors.New("Server port must be a valid positive integer value")
+		}
+		serverPort = &intVar
 	}
 
-	opts := Options{
-		Mode:       &theMode,
-		ServerHost: &serverIp,
+	if *serverPort == 0 {
+		return nil, errors.New("Server port must be a valid positive integer value")
 	}
 
-	return &opts, nil
+	if theMode == Server {
+
+		return &Options{
+			Mode: &theMode,
+		}, nil
+	}
+
+	return &Options{
+		Mode: &theMode,
+		ClientConf: &client.ClientConf{
+			Host: serverHost,
+			Port: serverPort,
+		},
+	}, nil
 }

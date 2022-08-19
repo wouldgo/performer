@@ -2,7 +2,6 @@ package client
 
 import (
 	"errors"
-	"net"
 
 	"github.com/BGrewell/go-iperf"
 	"github.com/google/uuid"
@@ -15,10 +14,7 @@ type ClientConf struct {
 
 type Client struct {
 	client *iperf.Client
-	Report chan *iperf.TestReport
 }
-
-func noopHanlder(reports *iperf.StreamIntervalReport) {}
 
 func New(options *ClientConf) (*Client, error) {
 	server := options.Host
@@ -33,14 +29,6 @@ func New(options *ClientConf) (*Client, error) {
 		return nil, errors.New("Port must be set")
 	}
 
-	maybeIp := net.ParseIP(*server)
-	var hostValue string
-	if maybeIp != nil {
-		hostValue = maybeIp.String()
-	} else {
-		hostValue = *server
-	}
-
 	json := true
 	includeServer := true
 	interval := 1
@@ -51,11 +39,11 @@ func New(options *ClientConf) (*Client, error) {
 
 	toReturn := &Client{
 		client: &iperf.Client{
-			//Debug: true,
-			Id:   uuid.New().String(),
-			Done: make(chan bool),
+			Debug: true,
+			Done:  make(chan bool),
+			Id:    uuid.New().String(),
 			Options: &iperf.ClientOptions{
-				Host:          &hostValue,
+				Host:          server,
 				Port:          port,
 				JSON:          &json,
 				Proto:         &proto,
@@ -66,7 +54,6 @@ func New(options *ClientConf) (*Client, error) {
 				Interval:      &interval,
 			},
 		},
-		Report: make(chan *iperf.TestReport),
 	}
 
 	return toReturn, nil
@@ -76,15 +63,14 @@ func (client *Client) Dispose() {
 	client.client.Stop()
 }
 
-func (client *Client) Test() error {
+func (client *Client) Test() (*iperf.TestReport, error) {
 	client.client.SetModeJson()
 
 	err := client.client.Start()
 	if err != nil {
-		return errors.New("Failed to start client:" + err.Error())
+		return nil, errors.New("Failed to start client:" + err.Error())
 	}
 
 	<-client.client.Done
-	client.Report <- client.client.Report()
-	return nil
+	return client.client.Report(), nil
 }

@@ -13,51 +13,34 @@ import (
 )
 
 func main() {
-	// options, err := parseOptions()
-	// if err != nil {
+	options, err := parseOptions()
+	if err != nil {
 
-	// 	panic(err)
-	// }
+		panic(err)
+	}
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 
-	host := "iperf.par2.as49434.net"
-	port := 9238
-	client, err := client.New(&client.ClientConf{
-		Host: &host,
-		Port: &port,
-	})
+	client, err := client.New(options.ClientConf)
 
 	if err != nil {
 
 		panic(err)
 	}
 
-	go func() {
+	defer client.Dispose()
 
-		data := <-client.Report
-		fmt.Printf("%v", data)
-	}()
-
-	errTest := client.Test()
+	report, errTest := client.Test()
 	if errTest != nil {
 		panic(errTest)
 	}
+	fmt.Printf("%v", report)
 
-	defer client.Dispose()
-
-	// if *options.Mode == Server {
-	// 	go server(options)
-	// }
-
-	// if *options.Mode == Client {
-
-	// 	go client(options)
-	// }
-
-	sig := <-stop
-	fmt.Printf("Caught %v", sig)
+	if *options.Mode != Client {
+		sig := <-stop
+		fmt.Printf("Caught %v", sig)
+	}
 }
 
 func server(options *Options) {
