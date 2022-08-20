@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -21,6 +22,7 @@ func TestSetModeToServerAndServerHostAndPortViaFlagParseOptions(t *testing.T) {
 	flag.Set("mode", "server")
 	flag.Set("host", "0.0.0.0")
 	flag.Set("port", "9000")
+	flag.Set("test-interval", "1m")
 
 	options, err := parseOptions()
 	if assert.NoError(t, err) {
@@ -45,6 +47,7 @@ func TestSetModeToClientAndServerHostAndPortViaFlagParseOptions(t *testing.T) {
 	flag.Set("mode", "client")
 	flag.Set("host", "0.0.0.0")
 	flag.Set("port", "9000")
+	flag.Set("test-interval", "1m")
 
 	options, err := parseOptions()
 	if assert.NoError(t, err) {
@@ -53,6 +56,7 @@ func TestSetModeToClientAndServerHostAndPortViaFlagParseOptions(t *testing.T) {
 		assert.NotNil(t, options.ClientConf)
 		assert.Equal(t, "0.0.0.0", *options.ClientConf.Host)
 		assert.Equal(t, 9000, *options.ClientConf.Port)
+		assert.Equal(t, time.Minute, *options.ClientConf.TestPeriod)
 	}
 }
 
@@ -60,6 +64,7 @@ func TestSetModeAndClientHostAndPortViaEnvVarParseOptions(t *testing.T) {
 	t.Setenv("PERFORMER_MODE", "client")
 	t.Setenv("PERMORER_SERVER_HOST", "0.0.0.0")
 	t.Setenv("PERFORMER_SERVER_PORT", "9000")
+	t.Setenv("PERFORMER_TEST_PERIOD", "1m")
 
 	options, err := parseOptions()
 	if assert.NoError(t, err) {
@@ -68,6 +73,7 @@ func TestSetModeAndClientHostAndPortViaEnvVarParseOptions(t *testing.T) {
 		assert.NotNil(t, options.ClientConf)
 		assert.Equal(t, "0.0.0.0", *options.ClientConf.Host)
 		assert.Equal(t, 9000, *options.ClientConf.Port)
+		assert.Equal(t, time.Minute, *options.ClientConf.TestPeriod)
 	}
 }
 
@@ -79,5 +85,17 @@ func TestSetModeAndClientHostAndPortWrongViaEnvVarParseOptions(t *testing.T) {
 	_, err := parseOptions()
 	if assert.Error(t, err) {
 		assert.Equal(t, errors.New("Server port must be a valid positive integer value"), err)
+	}
+}
+
+func TestSetModeAndClientHostAndPortAndIntervalPeriodWrongViaEnvVarParseOptions(t *testing.T) {
+	t.Setenv("PERFORMER_MODE", "client")
+	t.Setenv("PERMORER_SERVER_HOST", "0.0.0.0")
+	t.Setenv("PERFORMER_SERVER_PORT", "9000")
+	t.Setenv("PERFORMER_TEST_PERIOD", "foo")
+
+	_, err := parseOptions()
+	if assert.Error(t, err) {
+		assert.Equal(t, errors.New("Test period must be a valid duration value"), err)
 	}
 }

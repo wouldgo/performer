@@ -22,25 +22,28 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 
-	client, err := client.New(options.ClientConf)
+	if *options.Mode == Client {
+		client, err := client.New(stop, options.ClientConf)
+		if err != nil {
 
-	if err != nil {
+			panic(err)
+		}
 
-		panic(err)
+		defer client.Dispose()
+
+		go func() { //TODO ingest report
+			fmt.Println("---------------------------------------------------")
+			for aReport := range client.Report {
+				fmt.Printf("%v\r\n", aReport.Error)
+				fmt.Println("---------------------------------------------------")
+			}
+		}()
+
+		client.Test()
 	}
 
-	defer client.Dispose()
-
-	report, errTest := client.Test()
-	if errTest != nil {
-		panic(errTest)
-	}
-	fmt.Printf("%v", report)
-
-	if *options.Mode != Client {
-		sig := <-stop
-		fmt.Printf("Caught %v", sig)
-	}
+	sig := <-stop
+	fmt.Printf("Caught %v", sig)
 }
 
 func server(options *Options) {

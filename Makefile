@@ -8,7 +8,7 @@ ENTRYPOINT := cmd/performer/main.go cmd/performer/options.go
 
 test: deps
 	rm -Rf _out/.coverage;
-	go test -timeout 120s -cover -coverprofile=_out/.coverage ./...;
+	go test -timeout 120s -cover -coverprofile=_out/.coverage -v ./...;
 	go tool cover -html=_out/.coverage;
 
 performer: deps

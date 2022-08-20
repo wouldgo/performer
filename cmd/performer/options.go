@@ -8,6 +8,7 @@ import (
 	"performer/client"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func randomInt(min, max int) int {
@@ -18,6 +19,7 @@ var (
 	mode       = flag.String("mode", "client", "Mode. Can be either \"server\" or \"client\"")
 	serverHost = flag.String("host", "paris.testdebit.info", "Host where iperf server can be found")
 	serverPort = flag.Int("port", randomInt(9200, 9240), "Port where iperf server can be found")
+	testPeriod = flag.Duration("test-interval", time.Second, "Test period between each iperf test")
 )
 
 type Mode string
@@ -38,6 +40,7 @@ func parseOptions() (*Options, error) {
 	modeEnv, modeEnvSet := os.LookupEnv("PERFORMER_MODE")
 	serverHostEnv, serverHostEnvSet := os.LookupEnv("PERMORER_SERVER_HOST")
 	serverPortEnv, serverPortEnvSet := os.LookupEnv("PERFORMER_SERVER_PORT")
+	testPeriodEnv, testPeriodEnvSet := os.LookupEnv("PERFORMER_TEST_PERIOD")
 
 	if modeEnvSet {
 		mode = &modeEnv
@@ -69,6 +72,15 @@ func parseOptions() (*Options, error) {
 		return nil, errors.New("Server port must be a valid positive integer value")
 	}
 
+	if testPeriodEnvSet {
+		testPeriodFromEnv, err := time.ParseDuration(testPeriodEnv)
+		if err != nil {
+			return nil, errors.New("Test period must be a valid duration value")
+		}
+
+		testPeriod = &testPeriodFromEnv
+	}
+
 	if theMode == Server {
 
 		return &Options{
@@ -79,8 +91,9 @@ func parseOptions() (*Options, error) {
 	return &Options{
 		Mode: &theMode,
 		ClientConf: &client.ClientConf{
-			Host: serverHost,
-			Port: serverPort,
+			TestPeriod: testPeriod,
+			Host:       serverHost,
+			Port:       serverPort,
 		},
 	}, nil
 }
