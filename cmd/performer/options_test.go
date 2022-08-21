@@ -20,8 +20,8 @@ func TestDefaultParseOptions(t *testing.T) {
 
 func TestSetModeToServerAndServerHostAndPortViaFlagParseOptions(t *testing.T) {
 	flag.Set("mode", "server")
-	flag.Set("host", "0.0.0.0")
-	flag.Set("port", "9000")
+	flag.Set("peer-host", "0.0.0.0")
+	flag.Set("peer-port", "9000")
 	flag.Set("test-interval", "1m")
 
 	options, err := parseOptions()
@@ -34,8 +34,8 @@ func TestSetModeToServerAndServerHostAndPortViaFlagParseOptions(t *testing.T) {
 
 func TestSetModeToClientAndServerHostAndPortWrongViaFlagParseOptions(t *testing.T) {
 	flag.Set("mode", "client")
-	flag.Set("host", "0.0.0.0")
-	flag.Set("port", "foo")
+	flag.Set("peer-host", "0.0.0.0")
+	flag.Set("peer-port", "foo")
 
 	_, err := parseOptions()
 	if assert.Error(t, err) {
@@ -45,8 +45,8 @@ func TestSetModeToClientAndServerHostAndPortWrongViaFlagParseOptions(t *testing.
 
 func TestSetModeToClientAndServerHostAndPortViaFlagParseOptions(t *testing.T) {
 	flag.Set("mode", "client")
-	flag.Set("host", "0.0.0.0")
-	flag.Set("port", "9000")
+	flag.Set("peer-host", "0.0.0.0")
+	flag.Set("peer-port", "9000")
 	flag.Set("test-interval", "1m")
 
 	options, err := parseOptions()
@@ -62,8 +62,8 @@ func TestSetModeToClientAndServerHostAndPortViaFlagParseOptions(t *testing.T) {
 
 func TestSetModeAndClientHostAndPortViaEnvVarParseOptions(t *testing.T) {
 	t.Setenv("PERFORMER_MODE", "client")
-	t.Setenv("PERMORER_SERVER_HOST", "0.0.0.0")
-	t.Setenv("PERFORMER_SERVER_PORT", "9000")
+	t.Setenv("PERMORER_PEER_HOST", "0.0.0.0")
+	t.Setenv("PERMORER_PEER_PORT", "9000")
 	t.Setenv("PERFORMER_TEST_PERIOD", "1m")
 
 	options, err := parseOptions()
@@ -79,8 +79,8 @@ func TestSetModeAndClientHostAndPortViaEnvVarParseOptions(t *testing.T) {
 
 func TestSetModeAndClientHostAndPortWrongViaEnvVarParseOptions(t *testing.T) {
 	t.Setenv("PERFORMER_MODE", "client")
-	t.Setenv("PERMORER_SERVER_HOST", "0.0.0.0")
-	t.Setenv("PERFORMER_SERVER_PORT", "foo")
+	t.Setenv("PERMORER_PEER_HOST", "0.0.0.0")
+	t.Setenv("PERMORER_PEER_PORT", "foo")
 
 	_, err := parseOptions()
 	if assert.Error(t, err) {
@@ -90,8 +90,8 @@ func TestSetModeAndClientHostAndPortWrongViaEnvVarParseOptions(t *testing.T) {
 
 func TestSetModeAndClientHostAndPortAndIntervalPeriodWrongViaEnvVarParseOptions(t *testing.T) {
 	t.Setenv("PERFORMER_MODE", "client")
-	t.Setenv("PERMORER_SERVER_HOST", "0.0.0.0")
-	t.Setenv("PERFORMER_SERVER_PORT", "9000")
+	t.Setenv("PERMORER_PEER_HOST", "0.0.0.0")
+	t.Setenv("PERMORER_PEER_PORT", "9000")
 	t.Setenv("PERFORMER_TEST_PERIOD", "foo")
 
 	_, err := parseOptions()

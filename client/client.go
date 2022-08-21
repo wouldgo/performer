@@ -3,6 +3,7 @@ package client
 import (
 	"errors"
 	"os"
+	"strings"
 	"sync"
 	gotime "time"
 
@@ -10,26 +11,29 @@ import (
 	"github.com/google/uuid"
 )
 
-type ClientConf struct {
+type Configuration struct {
 	Host *string
 	Port *int
 
 	TestPeriod *gotime.Duration
 }
 
-type Client struct {
-	Report chan *iperf.TestReport
+type BitsPerSecond struct {
+	Upload   float64
+	Download float64
+}
 
+type Client struct {
+	report       chan *BitsPerSecond
 	client       *iperf.Client
 	stopIt       chan os.Signal
 	tickersDone  chan bool
 	periodTicker *gotime.Ticker
-	testMutex    sync.Mutex
 }
 
-func New(stop chan os.Signal, options *ClientConf) (*Client, error) {
-	server := options.Host
-	if server == nil {
+func New(stop chan os.Signal, options *Configuration) (*Client, error) {
+	host := options.Host
+	if host == nil {
 
 		return nil, errors.New("Host must be set")
 	}
@@ -54,7 +58,7 @@ func New(stop chan os.Signal, options *ClientConf) (*Client, error) {
 	length := "128KB"
 	streams := 1
 
-	report := make(chan *iperf.TestReport)
+	report := make(chan *BitsPerSecond)
 	tickersDone := make(chan bool)
 	periodTicker := gotime.NewTicker(*periodTickerDuration)
 
@@ -63,7 +67,7 @@ func New(stop chan os.Signal, options *ClientConf) (*Client, error) {
 		Done: make(chan bool),
 		Id:   uuid.New().String(),
 		Options: &iperf.ClientOptions{
-			Host:          server,
+			Host:          host,
 			Port:          port,
 			JSON:          &json,
 			Proto:         &proto,
@@ -76,7 +80,7 @@ func New(stop chan os.Signal, options *ClientConf) (*Client, error) {
 	}
 
 	toReturn := &Client{
-		Report: report,
+		report: report,
 
 		client:       &iperfClient,
 		stopIt:       stop,
@@ -99,30 +103,44 @@ func (client *Client) Dispose() {
 	client.periodTicker.Stop()
 }
 
-func (client *Client) Test() {
-	client.testMutex.Lock()
-	go func() {
-		for {
-			select {
-			case <-client.stopIt:
-			case <-client.tickersDone:
-				return
-			case <-client.periodTicker.C:
-				if client.client.Running {
-					continue
-				}
+func (client *Client) Test() chan *BitsPerSecond {
+	var testConfig sync.Once
 
-				err := client.client.Start()
-				if err != nil {
-					panic(err)
-				}
+	go testConfig.Do(client.testingInit)
 
-				go func() {
-					<-client.client.Done
-					client.Report <- client.client.Report()
-					client.testMutex.Unlock()
-				}()
+	return client.report
+}
+
+func (client *Client) testingInit() {
+	for {
+		select {
+		case <-client.stopIt:
+		case <-client.tickersDone:
+			return
+		case <-client.periodTicker.C:
+			if client.client.Running {
+				continue
 			}
+
+			err := client.client.Start()
+			if err != nil {
+				panic(err)
+			}
+
+			go func() {
+				<-client.client.Done
+				reportFromClient := *client.client.Report()
+
+				if !strings.Contains(reportFromClient.Error, "error") {
+
+					uploadBitsPerSecond := reportFromClient.End.SumSent.BitsPerSecond
+					downloadBitsPerSecond := reportFromClient.End.SumReceived.BitsPerSecond
+					client.report <- &BitsPerSecond{
+						Upload:   uploadBitsPerSecond,
+						Download: downloadBitsPerSecond,
+					}
+				}
+			}()
 		}
-	}()
+	}
 }

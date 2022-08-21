@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"performer/client"
+	"performer/server"
 	"strconv"
 	"strings"
 	"time"
@@ -17,9 +18,11 @@ func randomInt(min, max int) int {
 
 var (
 	mode       = flag.String("mode", "client", "Mode. Can be either \"server\" or \"client\"")
-	serverHost = flag.String("host", "paris.testdebit.info", "Host where iperf server can be found")
-	serverPort = flag.Int("port", randomInt(9200, 9240), "Port where iperf server can be found")
+	peerHost   = flag.String("peer-host", "paris.testdebit.info", "Host where iperf server can be found")
+	peerPort   = flag.Int("peer-port", randomInt(9200, 9240), "Port where iperf server can be found")
 	testPeriod = flag.Duration("test-interval", time.Second, "Test period between each iperf test")
+
+	localPort = flag.Int("local-port", randomInt(9200, 9240), "Port where bind iperf server")
 )
 
 type Mode string
@@ -30,7 +33,8 @@ const (
 )
 
 type Options struct {
-	ClientConf *client.ClientConf
+	ClientConf *client.Configuration
+	ServerConf *server.Configuration
 	Mode       *Mode
 }
 
@@ -38,9 +42,11 @@ func parseOptions() (*Options, error) {
 	flag.Parse()
 
 	modeEnv, modeEnvSet := os.LookupEnv("PERFORMER_MODE")
-	serverHostEnv, serverHostEnvSet := os.LookupEnv("PERMORER_SERVER_HOST")
-	serverPortEnv, serverPortEnvSet := os.LookupEnv("PERFORMER_SERVER_PORT")
+	peerHostEnv, peerHostEnvSet := os.LookupEnv("PERMORER_PEER_HOST")
+	peerPortEnv, peerPortEnvSet := os.LookupEnv("PERMORER_PEER_PORT")
 	testPeriodEnv, testPeriodEnvSet := os.LookupEnv("PERFORMER_TEST_PERIOD")
+
+	localPortEnv, localPortEnvSet := os.LookupEnv("PERFORMER_LOCAL_PORT")
 
 	if modeEnvSet {
 		mode = &modeEnv
@@ -55,21 +61,33 @@ func parseOptions() (*Options, error) {
 		theMode = Server
 	}
 
-	if serverHostEnvSet {
+	if peerHostEnvSet {
 
-		serverHost = &serverHostEnv
+		peerHost = &peerHostEnv
 	}
 
-	if serverPortEnvSet {
-		intVar, err := strconv.Atoi(serverPortEnv)
+	if peerPortEnvSet {
+		intVar, err := strconv.Atoi(peerPortEnv)
 		if err != nil {
 			return nil, errors.New("Server port must be a valid positive integer value")
 		}
-		serverPort = &intVar
+		peerPort = &intVar
 	}
 
-	if *serverPort == 0 {
+	if *peerPort == 0 {
 		return nil, errors.New("Server port must be a valid positive integer value")
+	}
+
+	if localPortEnvSet {
+		intVar, err := strconv.Atoi(localPortEnv)
+		if err != nil {
+			return nil, errors.New("Local port must be a valid positive integer value")
+		}
+		localPort = &intVar
+	}
+
+	if *localPort == 0 {
+		return nil, errors.New("Local port must be a valid positive integer value")
 	}
 
 	if testPeriodEnvSet {
@@ -85,15 +103,18 @@ func parseOptions() (*Options, error) {
 
 		return &Options{
 			Mode: &theMode,
+			ServerConf: &server.Configuration{
+				Port: localPort,
+			},
 		}, nil
 	}
 
 	return &Options{
 		Mode: &theMode,
-		ClientConf: &client.ClientConf{
+		ClientConf: &client.Configuration{
 			TestPeriod: testPeriod,
-			Host:       serverHost,
-			Port:       serverPort,
+			Host:       peerHost,
+			Port:       peerPort,
 		},
 	}, nil
 }

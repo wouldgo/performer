@@ -12,7 +12,7 @@ import (
 
 func TestNewWithEmptyStructConfiguration(t *testing.T) {
 	stopChannel := make(chan os.Signal)
-	client, err := New(stopChannel, &ClientConf{})
+	client, err := New(stopChannel, &Configuration{})
 
 	assert.Nil(t, client, "New client has to be nil")
 	assert.EqualError(t, err, "Host must be set")
@@ -21,7 +21,7 @@ func TestNewWithEmptyStructConfiguration(t *testing.T) {
 func TestNewWithNoPortStructConfiguration(t *testing.T) {
 	host := "127.0.0.1"
 	stopChannel := make(chan os.Signal)
-	client, err := New(stopChannel, &ClientConf{
+	client, err := New(stopChannel, &Configuration{
 		Host: &host,
 	})
 
@@ -33,7 +33,7 @@ func TestNewWithNoPeriodIntervalStructConfiguration(t *testing.T) {
 	host := "iperf.par2.as49434.net"
 	port := 9238
 	stopChannel := make(chan os.Signal)
-	client, err := New(stopChannel, &ClientConf{
+	client, err := New(stopChannel, &Configuration{
 		Host: &host,
 		Port: &port,
 	})
@@ -48,7 +48,7 @@ func TestNewWithStructOkConfiguration(t *testing.T) {
 	intervalPeriodDuration := 5 * time.Second
 	stopChannel := make(chan os.Signal)
 
-	client, err := New(stopChannel, &ClientConf{
+	client, err := New(stopChannel, &Configuration{
 		Host:       &host,
 		Port:       &port,
 		TestPeriod: &intervalPeriodDuration,
@@ -75,10 +75,10 @@ func TestNewWithStructConfiguration(t *testing.T) {
 	var wg sync.WaitGroup
 	host := "iperf.par2.as49434.net"
 	port := 9238
-	intervalPeriodDuration := 5 * time.Second
+	intervalPeriodDuration := time.Second
 	stopChannel := make(chan os.Signal)
 
-	client, err := New(stopChannel, &ClientConf{
+	client, err := New(stopChannel, &Configuration{
 		Host:       &host,
 		Port:       &port,
 		TestPeriod: &intervalPeriodDuration,
@@ -88,16 +88,44 @@ func TestNewWithStructConfiguration(t *testing.T) {
 	assert.NotNil(t, client, "New client has to be set")
 	assert.Nil(t, err, "New client has to not throw errors")
 
+	wg.Add(1)
+	dataChan := client.Test()
+	assert.NotNil(t, dataChan)
 	go func() {
-		for aReport := range client.Report {
+		for aReport := range dataChan {
 			t.Logf("%v", aReport)
 			wg.Done()
 			break
 		}
 	}()
+	wg.Wait()
+}
+
+func TestNewWithStructConfigurationSignalingStop(t *testing.T) {
+	var wg sync.WaitGroup
+	host := "iperf.par2.as49434.net"
+	port := 9238
+	intervalPeriodDuration := time.Second
+	stopChannel := make(chan os.Signal)
+
+	client, err := New(stopChannel, &Configuration{
+		Host:       &host,
+		Port:       &port,
+		TestPeriod: &intervalPeriodDuration,
+	})
+	defer client.Dispose()
+
+	assert.NotNil(t, client, "New client has to be set")
+	assert.Nil(t, err, "New client has to not throw errors")
 
 	wg.Add(1)
-	client.Test()
+	dataChan := client.Test()
+	assert.NotNil(t, dataChan)
+	go func() {
+
+		stopChannel <- os.Interrupt
+		wg.Done()
+	}()
 	wg.Wait()
 }
 
@@ -105,10 +133,10 @@ func TestNewWithStructConfigurationCallingTwice(t *testing.T) {
 	var wg sync.WaitGroup
 	host := "iperf.par2.as49434.net"
 	port := 9238
-	intervalPeriodDuration := 5 * time.Second
+	intervalPeriodDuration := time.Second
 	stopChannel := make(chan os.Signal)
 
-	client, err := New(stopChannel, &ClientConf{
+	client, err := New(stopChannel, &Configuration{
 		Host:       &host,
 		Port:       &port,
 		TestPeriod: &intervalPeriodDuration,
@@ -118,16 +146,16 @@ func TestNewWithStructConfigurationCallingTwice(t *testing.T) {
 	assert.NotNil(t, client, "New client has to be set")
 	assert.Nil(t, err, "New client has to not throw errors")
 
+	wg.Add(1)
+	_ = client.Test()
+	dataChan := client.Test()
+	assert.NotNil(t, dataChan)
 	go func() {
-		for aReport := range client.Report {
+		for aReport := range dataChan {
 			t.Logf("%v", aReport)
 			wg.Done()
 			break
 		}
 	}()
-
-	wg.Add(1)
-	client.Test()
-	client.Test()
 	wg.Wait()
 }
