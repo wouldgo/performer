@@ -14,6 +14,8 @@ type Configuration struct {
 
 type Server struct {
 	server *iperf.Server
+
+	stopIp chan os.Signal
 }
 
 func New(stop chan os.Signal, options *Configuration) (*Server, error) {
@@ -36,14 +38,28 @@ func New(stop chan os.Signal, options *Configuration) (*Server, error) {
 		},
 	}
 
-	err := server.Start()
-	if err != nil {
-		return nil, errors.New("failed to start server: " + err.Error())
-	}
-
 	return &Server{
 		server: server,
+
+		stopIp: stop,
 	}, nil
+}
+
+func (server *Server) Start() error {
+	go func() {
+		for {
+			select {
+			case <-server.stopIp:
+				server.Dispose()
+			}
+		}
+	}()
+
+	err := server.server.Start()
+	if err != nil {
+		return errors.New("failed to start server: " + err.Error())
+	}
+	return nil
 }
 
 func (server *Server) Dispose() {

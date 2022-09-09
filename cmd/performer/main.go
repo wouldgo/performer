@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"performer/client"
+	"performer/server"
 	"syscall"
 
 	_ "github.com/breml/rootcerts"
@@ -37,7 +38,18 @@ func main() {
 			}
 		}()
 	} else if *options.Mode == Server {
+		server, err := server.New(stop, options.ServerConf)
+		if err != nil {
 
+			panic(err)
+		}
+		defer server.Dispose()
+
+		startErr := server.Start()
+		if startErr != nil {
+
+			panic(startErr)
+		}
 	}
 
 	sig := <-stop
