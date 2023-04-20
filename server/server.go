@@ -22,7 +22,7 @@ func New(stop chan os.Signal, options *Configuration) (*Server, error) {
 	port := options.Port
 	if port == nil {
 
-		return nil, errors.New("Port must be set")
+		return nil, errors.New("port must be set")
 	}
 
 	defaultInterval := 1
@@ -47,11 +47,10 @@ func New(stop chan os.Signal, options *Configuration) (*Server, error) {
 
 func (server *Server) Start() error {
 	go func() {
-		for {
-			select {
-			case <-server.stopIp:
-				server.Dispose()
-			}
+		for range server.stopIp {
+
+			server.Dispose()
+			return
 		}
 	}()
 

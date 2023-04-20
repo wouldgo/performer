@@ -39,7 +39,7 @@ func TestSetModeToClientAndServerHostAndPortWrongViaFlagParseOptions(t *testing.
 
 	_, err := parseOptions()
 	if assert.Error(t, err) {
-		assert.Equal(t, errors.New("Server port must be a valid positive integer value"), err)
+		assert.Equal(t, errors.New("server port must be a valid positive integer value"), err)
 	}
 }
 
@@ -84,7 +84,7 @@ func TestSetModeAndClientHostAndPortWrongViaEnvVarParseOptions(t *testing.T) {
 
 	_, err := parseOptions()
 	if assert.Error(t, err) {
-		assert.Equal(t, errors.New("Server port must be a valid positive integer value"), err)
+		assert.Equal(t, errors.New("server port must be a valid positive integer value"), err)
 	}
 }
 
@@ -96,6 +96,6 @@ func TestSetModeAndClientHostAndPortAndIntervalPeriodWrongViaEnvVarParseOptions(
 
 	_, err := parseOptions()
 	if assert.Error(t, err) {
-		assert.Equal(t, errors.New("Test period must be a valid duration value"), err)
+		assert.Equal(t, errors.New("test period must be a valid duration value"), err)
 	}
 }

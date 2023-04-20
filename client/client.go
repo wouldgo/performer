@@ -31,23 +31,23 @@ type Client struct {
 	periodTicker *gotime.Ticker
 }
 
-func New(stop chan os.Signal, options *Configuration) (*Client, error) {
+func New(options *Configuration) (*Client, error) {
 	host := options.Host
 	if host == nil {
 
-		return nil, errors.New("Host must be set")
+		return nil, errors.New("host must be set")
 	}
 
 	port := options.Port
 	if port == nil {
 
-		return nil, errors.New("Port must be set")
+		return nil, errors.New("port must be set")
 	}
 
 	periodTickerDuration := options.TestPeriod
 	if periodTickerDuration == nil {
 
-		return nil, errors.New("Interval period duration must be set")
+		return nil, errors.New("interval period duration must be set")
 	}
 
 	json := true
@@ -83,7 +83,6 @@ func New(stop chan os.Signal, options *Configuration) (*Client, error) {
 		report: report,
 
 		client:       &iperfClient,
-		stopIt:       stop,
 		tickersDone:  tickersDone,
 		periodTicker: periodTicker,
 	}

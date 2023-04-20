@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"performer/client"
+	"performer/prom"
 	"performer/server"
 	"syscall"
 
@@ -22,21 +23,18 @@ func main() {
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 
 	if *options.Mode == Client {
-		client, err := client.New(stop, options.ClientConf)
+		client, err := client.New(options.ClientConf)
 		if err != nil {
 
 			panic(err)
 		}
 
 		defer client.Dispose()
+
 		dataChan := client.Test()
-		go func() { //TODO ingest report
-			fmt.Println("---------------------------------------------------")
-			for aReport := range dataChan {
-				fmt.Printf("%v\r\n", aReport)
-				fmt.Println("---------------------------------------------------")
-			}
-		}()
+		metrics := prom.NewMetrics(dataChan)
+
+		go metrics.Handle()
 	} else if *options.Mode == Server {
 		server, err := server.New(stop, options.ServerConf)
 		if err != nil {
